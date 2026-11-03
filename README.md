@@ -4,3 +4,4 @@ Team Name
 
 Team Members
 1. Minwoo Chung, emc358
+2. Sophia Evans, sle68
