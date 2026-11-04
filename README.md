@@ -1,6 +1,6 @@
 # cs3110_team_project
 
-Team Name
+Team Name: MD SKY
 
 Team Members
 1. Minwoo Chung, emc358
