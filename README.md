@@ -7,3 +7,4 @@ Team Members
 2. Sophia Evans, sle68
 3. Kevin Liu, zl2237
 4. Yutong Chen, yc2623
+5. Dian Yang, dy365
