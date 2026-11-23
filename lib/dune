@@ -1,5 +1,2 @@
 (library
- (name team_project)
- (modules_without_implementation
-  bot_intf
-))
+ (name team_project))
