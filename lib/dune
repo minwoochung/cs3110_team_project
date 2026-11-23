@@ -6,5 +6,4 @@
   dice
   game
   scorecard
-  scoring
-  simulator))
+  scoring))
