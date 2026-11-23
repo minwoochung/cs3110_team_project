@@ -5,3 +5,7 @@
 (test
  (name test_simulator)
  (libraries ounit2 team_project))
+
+(test
+ (name test_expert_bot)
+ (libraries ounit2 team_project))
