@@ -1,3 +1,7 @@
 (test
- (name test_team_project)
+ (name test_bots)
+ (libraries ounit2 team_project))
+
+(test
+ (name test_simulator)
  (libraries ounit2 team_project))
