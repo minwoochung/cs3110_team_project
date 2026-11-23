@@ -2,9 +2,4 @@
  (name team_project)
  (modules_without_implementation
   bot_intf
-  categories
-  dice
-  game
-  scorecard
-  scoring
-  simulator))
+))
