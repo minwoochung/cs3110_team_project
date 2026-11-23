@@ -9,11 +9,13 @@ let rec choose_bot () =
   print_endline "Choose a bot opponent:";
   print_endline "  1. Random";
   print_endline "  2. Greedy";
+  print_endline "  3. Expert (Upper-Bonus Chaser)";
   match String.lowercase_ascii (String.trim (read_input "> ")) with
   | "1" | "random" -> (module Random_bot : Bot_intf.BOT), "Random"
   | "2" | "greedy" -> (module Greedy_bot : Bot_intf.BOT), "Greedy"
+  | "3" | "expert" -> (module Expert_bot : Bot_intf.BOT), "Expert"
   | _ ->
-      print_endline "Please enter 1 (Random) or 2 (Greedy).";
+      print_endline "Please enter 1 (Random), 2 (Greedy), or 3 (Expert).";
       choose_bot ()
 
 let apply game action =
