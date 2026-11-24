@@ -18,7 +18,9 @@ let all_masks =
 
 let sample_rolls =
   List.map d
-    [ [ 1; 2; 3; 4; 5 ]; [ 6; 6; 6; 6; 6 ]; [ 3; 1; 3; 5; 3 ]; [ 2; 2; 5; 5; 4 ] ]
+    [
+      [ 1; 2; 3; 4; 5 ]; [ 6; 6; 6; 6; 6 ]; [ 3; 1; 3; 5; 3 ]; [ 2; 2; 5; 5; 4 ];
+    ]
 
 (* Results as int lists, so they can be compared and printed. *)
 let as_lists l = List.map (fun (r, p) -> (Dice.to_list r, p)) l
@@ -43,31 +45,36 @@ let tests =
              sample_rolls );
          ( "rerolling all five gives 252 distinct rolls" >:: fun _ ->
            assert_equal ~printer:string_of_int 252
-             (List.length (Probability.outcomes (d [ 1; 1; 1; 1; 1 ]) none_keep))
-         );
+             (List.length
+                (Probability.outcomes (d [ 1; 1; 1; 1; 1 ]) none_keep)) );
          ( "rerolling all five: P(Yahtzee) = 6/7776" >:: fun _ ->
            assert_float (1. /. 1296.)
-             (Probability.prob_of Scoring.is_yahtzee (d [ 1; 2; 3; 4; 5 ])
+             (Probability.prob_of Scoring.is_yahtzee
+                (d [ 1; 2; 3; 4; 5 ])
                 none_keep) );
          ( "rerolling all five: expected sum = 17.5" >:: fun _ ->
            assert_float 17.5
              (Probability.expected sum_dice (d [ 1; 2; 3; 4; 5 ]) none_keep) );
          ( "keep three 6s: P(Yahtzee) = 1/36" >:: fun _ ->
            assert_float (1. /. 36.)
-             (Probability.prob_of Scoring.is_yahtzee (d [ 6; 6; 6; 1; 2 ])
+             (Probability.prob_of Scoring.is_yahtzee
+                (d [ 6; 6; 6; 1; 2 ])
                 keep_first3) );
          ( "keep three 6s: P(at least four 6s) = 11/36" >:: fun _ ->
            assert_float (11. /. 36.)
              (Probability.prob_of
                 (fun r -> Scoring.count 6 r >= 4)
-                (d [ 6; 6; 6; 1; 2 ]) keep_first3) );
+                (d [ 6; 6; 6; 1; 2 ])
+                keep_first3) );
          ( "order of dice does not matter" >:: fun _ ->
            assert_equal
              (as_lists
-                (Probability.outcomes (d [ 2; 5; 5; 1; 1 ])
+                (Probability.outcomes
+                   (d [ 2; 5; 5; 1; 1 ])
                    [ true; false; true; false; false ]))
              (as_lists
-                (Probability.outcomes (d [ 5; 5; 2; 1; 1 ])
+                (Probability.outcomes
+                   (d [ 5; 5; 2; 1; 1 ])
                    [ true; false; true; false; false ])) );
          ( "multinomial and brute force agree" >:: fun _ ->
            List.iter
