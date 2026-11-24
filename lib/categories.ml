@@ -1,4 +1,4 @@
-type t = 
+type t =
   | Ones
   | Twos
   | Threes
@@ -13,8 +13,9 @@ type t =
   | Yahtzee
   | Chance
 
-let all = [
-  Ones;
+let all =
+  [
+    Ones;
     Twos;
     Threes;
     Fours;
@@ -27,14 +28,13 @@ let all = [
     Large_straight;
     Yahtzee;
     Chance;
-]
+  ]
 
 let is_upper = function
   | Ones | Twos | Threes | Fours | Fives | Sixes -> true
   | _ -> false
 
-
-let to_string = function 
+let to_string = function
   | Ones -> "Ones"
   | Twos -> "Twos"
   | Threes -> "Threes"
@@ -52,6 +52,5 @@ let to_string = function
 let of_string s =
   let res = String.lowercase_ascii (String.trim s) in
   List.find_opt
-    (fun category ->
-      String.lowercase_ascii (to_string category) = res)
+    (fun category -> String.lowercase_ascii (to_string category) = res)
     all

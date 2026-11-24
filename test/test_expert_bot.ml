@@ -3,8 +3,8 @@ open Team_project
 
 let rng () = Random.State.make [| 42 |]
 
-(** [card_with entries] is a scorecard with each
-    [(category, score)] in [entries] already recorded. *)
+(** [card_with entries] is a scorecard with each [(category, score)] in
+    [entries] already recorded. *)
 let card_with entries =
   List.fold_left
     (fun card (category, score) ->
@@ -13,9 +13,8 @@ let card_with entries =
       | Error msg -> failwith msg)
     (Scorecard.create ()) entries
 
-(** [make_obs ?card values] is an observation with dice
-    [values], two rerolls left, and every open category on
-    [card] legal. *)
+(** [make_obs ?card values] is an observation with dice [values], two rerolls
+    left, and every open category on [card] legal. *)
 let make_obs ?(card = Scorecard.create ()) values : Bot_intf.observation =
   {
     dice = Dice.of_list values;
@@ -29,18 +28,14 @@ let keep ?card values = Expert_bot.choose_keep (rng ()) (make_obs ?card values)
 let pick ?card values =
   Expert_bot.choose_category (rng ()) (make_obs ?card values)
 
-let pp_mask m =
-  "[" ^ String.concat "; " (List.map string_of_bool m) ^ "]"
-
+let pp_mask m = "[" ^ String.concat "; " (List.map string_of_bool m) ^ "]"
 let pp_cat = Categories.to_string
 
 let keep_test name ?card values expected =
-  name >:: fun _ ->
-  assert_equal ~printer:pp_mask expected (keep ?card values)
+  name >:: fun _ -> assert_equal ~printer:pp_mask expected (keep ?card values)
 
 let pick_test name ?card values expected =
-  name >:: fun _ ->
-  assert_equal ~printer:pp_cat expected (pick ?card values)
+  name >:: fun _ -> assert_equal ~printer:pp_cat expected (pick ?card values)
 
 let t = true
 let f = false
@@ -61,14 +56,14 @@ let helper_tests =
       in
       assert_equal 63 total );
     ( "longest run finds a small straight" >:: fun _ ->
-      assert_equal (1, 4) (Expert_bot.longest_run (Dice.of_list [ 3; 1; 4; 2; 6 ]))
-    );
+      assert_equal (1, 4)
+        (Expert_bot.longest_run (Dice.of_list [ 3; 1; 4; 2; 6 ])) );
     ( "longest run of identical dice is 1" >:: fun _ ->
-      assert_equal (5, 1) (Expert_bot.longest_run (Dice.of_list [ 5; 5; 5; 5; 5 ]))
-    );
+      assert_equal (5, 1)
+        (Expert_bot.longest_run (Dice.of_list [ 5; 5; 5; 5; 5 ])) );
     ( "longest run tie goes to higher values" >:: fun _ ->
-      assert_equal (5, 2) (Expert_bot.longest_run (Dice.of_list [ 1; 2; 5; 6; 1 ]))
-    );
+      assert_equal (5, 2)
+        (Expert_bot.longest_run (Dice.of_list [ 1; 2; 5; 6; 1 ])) );
     ( "target is the most common value" >:: fun _ ->
       assert_equal 3
         (Expert_bot.target_value (Scorecard.create ())
@@ -85,15 +80,11 @@ let helper_tests =
       assert_bool "live" (Expert_bot.bonus_live (Scorecard.create ())) );
     ( "bonus not live once earned" >:: fun _ ->
       let card =
-        card_with
-          Categories.
-            [ (Fours, 16); (Fives, 20); (Sixes, 30) ]
+        card_with Categories.[ (Fours, 16); (Fives, 20); (Sixes, 30) ]
       in
       assert_bool "earned" (not (Expert_bot.bonus_live card)) );
     ( "bonus not live once unreachable" >:: fun _ ->
-      let card =
-        card_with Categories.[ (Fives, 0); (Sixes, 0) ]
-      in
+      let card = card_with Categories.[ (Fives, 0); (Sixes, 0) ] in
       assert_bool "unreachable" (not (Expert_bot.bonus_live card)) );
     ( "utility adds bonus push at par" >:: fun _ ->
       let dice = Dice.of_list [ 6; 6; 6; 1; 2 ] in
@@ -152,8 +143,7 @@ let pick_tests =
         (card_with
            Categories.[ (Twos, 6); (Threes, 15); (Fours, 20); (Fives, 25) ])
       [ 6; 6; 6; 4; 5 ] Categories.Three_of_a_kind;
-    pick_test "bad roll is sacrificed in Ones" [ 1; 2; 4; 6; 6 ]
-      Categories.Ones;
+    pick_test "bad roll is sacrificed in Ones" [ 1; 2; 4; 6; 6 ] Categories.Ones;
     pick_test "full house when its triple's upper box is used"
       ~card:(card_with [ (Categories.Threes, 9) ])
       [ 2; 2; 3; 3; 3 ] Categories.Full_house;

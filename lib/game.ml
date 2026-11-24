@@ -29,27 +29,24 @@ type t = {
 (* Game creation *)
 
 let create_named names seed =
-  if names = [] then
-    invalid_arg "Game.create_named needs at least one player"
+  if names = [] then invalid_arg "Game.create_named needs at least one player"
   else if List.exists (fun name -> String.trim name = "") names then
     invalid_arg "Game.create_named requires player names to not be empty"
   else
     let players =
-      List.map
-        (fun name ->
-          { name; scorecard = Scorecard.create () })
-        names
+      List.map (fun name -> { name; scorecard = Scorecard.create () }) names
       |> Array.of_list
     in
     {
-      state = {
-        players;
-        current_player = 0;
-        dice = None;
-        rolls_used = 0;
-        phase = Awaiting_roll;
-      };
-      rng = Random.State.make [|seed|];
+      state =
+        {
+          players;
+          current_player = 0;
+          dice = None;
+          rolls_used = 0;
+          phase = Awaiting_roll;
+        };
+      rng = Random.State.make [| seed |];
     }
 
 let create num_players seed =
@@ -57,22 +54,13 @@ let create num_players seed =
     invalid_arg "Game.create needs number of players to be positive"
   else
     let names =
-      List.init num_players
-        (fun i -> "Player " ^ string_of_int (i + 1))
+      List.init num_players (fun i -> "Player " ^ string_of_int (i + 1))
     in
     create_named names seed
 
-let current_player game =
-  game.state.current_player
-
-let get_state game =
-  {
-    game.state with
-    players = Array.copy game.state.players;
-  }
-
-let is_finished game =
-  game.state.phase = Finished
+let current_player game = game.state.current_player
+let get_state game = { game.state with players = Array.copy game.state.players }
+let is_finished game = game.state.phase = Finished
 
 let final_scores game =
   if not (is_finished game) then
@@ -80,8 +68,7 @@ let final_scores game =
   else
     Array.to_list
       (Array.map
-         (fun player ->
-           Scorecard.total_score player.scorecard)
+         (fun player -> Scorecard.total_score player.scorecard)
          game.state.players)
 
 (* Helper functions for scoring rules *)
@@ -105,38 +92,29 @@ let matching_upper_category dice =
   | [] -> invalid_arg "Game.matching_upper_category: empty dice"
 
 let is_repeat_yahtzee card dice =
-  Scoring.is_yahtzee dice
-  && Scorecard.get card Categories.Yahtzee <> None
+  Scoring.is_yahtzee dice && Scorecard.get card Categories.Yahtzee <> None
 
 let earns_yahtzee_bonus card dice =
-  Scoring.is_yahtzee dice
-  && Scorecard.get card Categories.Yahtzee = Some 50
+  Scoring.is_yahtzee dice && Scorecard.get card Categories.Yahtzee = Some 50
 
 let legal_scoring_categories card dice =
   let available = Scorecard.available_categories card in
-  if not (is_repeat_yahtzee card dice) then
-    available
+  if not (is_repeat_yahtzee card dice) then available
   else
     let upper = matching_upper_category dice in
-    if Scorecard.is_available card upper then
-      [upper]
+    if Scorecard.is_available card upper then [ upper ]
     else
       let lower =
         List.filter
           (fun category -> not (Categories.is_upper category))
           available
       in
-      if lower <> [] then
-        lower
-      else
-        List.filter Categories.is_upper available
+      if lower <> [] then lower else List.filter Categories.is_upper available
 
 let score_for_category card dice category =
   let joker_applies =
     is_repeat_yahtzee card dice
-    && not
-         (Scorecard.is_available card
-            (matching_upper_category dice))
+    && not (Scorecard.is_available card (matching_upper_category dice))
   in
   if joker_applies then
     match category with
@@ -144,24 +122,19 @@ let score_for_category card dice category =
     | Categories.Small_straight -> 30
     | Categories.Large_straight -> 40
     | _ -> Scoring.score dice category
-  else
-    Scoring.score dice category
+  else Scoring.score dice category
 
 (* Legal actions *)
 
 let all_keep_masks =
-  List.init 32 (fun n ->
-    List.init 5 (fun i ->
-      (n land (1 lsl i)) <> 0))
+  List.init 32 (fun n -> List.init 5 (fun i -> n land (1 lsl i) <> 0))
 
 let legal_actions game =
   let state = game.state in
   match state.phase with
   | Finished -> []
-
-  | Awaiting_roll -> [Roll]
-
-  | In_turn ->
+  | Awaiting_roll -> [ Roll ]
+  | In_turn -> (
       match state.dice with
       | None -> []
       | Some dice ->
@@ -173,13 +146,10 @@ let legal_actions game =
           in
           if state.rolls_used < 3 then
             let reroll_actions =
-              List.map
-                (fun mask -> Reroll mask)
-                all_keep_masks
+              List.map (fun mask -> Reroll mask) all_keep_masks
             in
             reroll_actions @ scoring_actions
-          else
-            scoring_actions
+          else scoring_actions)
 
 (* Apply an action *)
 
@@ -193,75 +163,62 @@ let apply_action game action =
     match action with
     | Roll ->
         let dice = Dice.roll rng in
-        let next_state = {
-          state with
-          dice = Some dice;
-          rolls_used = 1;
-          phase = In_turn;
-        } in
+        let next_state =
+          { state with dice = Some dice; rolls_used = 1; phase = In_turn }
+        in
         Ok { state = next_state; rng }
+    | Reroll keep -> (
+        match state.dice with
+        | None -> Error "Game.apply_action: no dice to reroll"
+        | Some dice ->
+            let new_dice = Dice.reroll rng dice keep in
+            let next_state =
+              {
+                state with
+                dice = Some new_dice;
+                rolls_used = state.rolls_used + 1;
+              }
+            in
+            Ok { state = next_state; rng })
+    | Score category -> (
+        match state.dice with
+        | None -> Error "Game.apply_action: must roll before scoring"
+        | Some dice -> (
+            let card = current_scorecard game in
+            let points = score_for_category card dice category in
+            match Scorecard.record_score card category points with
+            | Error message -> Error message
+            | Ok updated_card ->
+                let updated_card =
+                  if earns_yahtzee_bonus card dice then
+                    Scorecard.add_yahtzee_bonus updated_card
+                  else updated_card
+                in
 
-    | Reroll keep ->
-        (match state.dice with
-         | None ->
-             Error "Game.apply_action: no dice to reroll"
+                let players = Array.copy state.players in
+                let index = state.current_player in
+                let player = players.(index) in
+                players.(index) <- { player with scorecard = updated_card };
 
-         | Some dice ->
-             let new_dice = Dice.reroll rng dice keep in
-             let next_state = {
-               state with
-               dice = Some new_dice;
-               rolls_used = state.rolls_used + 1;
-             } in
-             Ok { state = next_state; rng })
+                let finished =
+                  Array.for_all
+                    (fun player -> Scorecard.is_complete player.scorecard)
+                    players
+                in
 
-    | Score category ->
-        (match state.dice with
-         | None ->
-             Error "Game.apply_action: must roll before scoring"
+                let next_player =
+                  if finished then index
+                  else (index + 1) mod Array.length players
+                in
 
-         | Some dice ->
-             let card = current_scorecard game in
-             let points =
-               score_for_category card dice category
-             in
-             match Scorecard.record_score card category points with
-             | Error message -> Error message
+                let next_state =
+                  {
+                    players;
+                    current_player = next_player;
+                    dice = None;
+                    rolls_used = 0;
+                    phase = (if finished then Finished else Awaiting_roll);
+                  }
+                in
 
-             | Ok updated_card ->
-                 let updated_card =
-                   if earns_yahtzee_bonus card dice then
-                     Scorecard.add_yahtzee_bonus updated_card
-                   else
-                     updated_card
-                 in
-
-                 let players = Array.copy state.players in
-                 let index = state.current_player in
-                 let player = players.(index) in
-                 players.(index) <-
-                   { player with scorecard = updated_card };
-
-                 let finished =
-                   Array.for_all
-                     (fun player ->
-                       Scorecard.is_complete player.scorecard)
-                     players
-                 in
-
-                 let next_player =
-                   if finished then index
-                   else (index + 1) mod Array.length players
-                 in
-
-                 let next_state = {
-                   players;
-                   current_player = next_player;
-                   dice = None;
-                   rolls_used = 0;
-                   phase =
-                     (if finished then Finished
-                      else Awaiting_roll);
-                 } in
-
-                 Ok { state = next_state; rng }) 
+                Ok { state = next_state; rng }))

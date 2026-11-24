@@ -11,9 +11,9 @@ let rec choose_bot () =
   print_endline "  2. Greedy";
   print_endline "  3. Expert (Upper-Bonus Chaser)";
   match String.lowercase_ascii (String.trim (read_input "> ")) with
-  | "1" | "random" -> (module Random_bot : Bot_intf.BOT), "Random"
-  | "2" | "greedy" -> (module Greedy_bot : Bot_intf.BOT), "Greedy"
-  | "3" | "expert" -> (module Expert_bot : Bot_intf.BOT), "Expert"
+  | "1" | "random" -> ((module Random_bot : Bot_intf.BOT), "Random")
+  | "2" | "greedy" -> ((module Greedy_bot : Bot_intf.BOT), "Greedy")
+  | "3" | "expert" -> ((module Expert_bot : Bot_intf.BOT), "Expert")
   | _ ->
       print_endline "Please enter 1 (Random), 2 (Greedy), or 3 (Expert).";
       choose_bot ()
@@ -26,19 +26,25 @@ let apply game action =
 let legal_categories game =
   Game.legal_actions game
   |> List.filter_map (function
-       | Game.Score category -> Some category
-       | Game.Roll | Game.Reroll _ -> None)
+    | Game.Score category -> Some category
+    | Game.Roll | Game.Reroll _ -> None)
 
-type turn_choice = Keep of Dice.keep_mask | Score_now | Show_card
+type turn_choice =
+  | Keep of Dice.keep_mask
+  | Score_now
+  | Show_card
 
 let parse_turn_input input =
   match String.lowercase_ascii (String.trim input) with
   | "score" -> Ok Score_now
   | "card" -> Ok Show_card
-  | _ -> Result.map (fun keep -> Keep keep) (Terminal_ui.parse_keep_positions input)
+  | _ ->
+      Result.map
+        (fun keep -> Keep keep)
+        (Terminal_ui.parse_keep_positions input)
 
-(* Re-prompts on bad input without redrawing the screen, so the error
-   message stays right above the prompt. *)
+(* Re-prompts on bad input without redrawing the screen, so the error message
+   stays right above the prompt. *)
 let rec ask parse prompt =
   match parse (read_input prompt) with
   | Ok value -> value
@@ -56,9 +62,11 @@ let rec human_turn game =
       if state.rolls_used >= 3 then choose_score game state
       else (
         print_endline "Your move:";
-        print_endline "  dice numbers (e.g. 1 3)  keep those dice, reroll the rest";
+        print_endline
+          "  dice numbers (e.g. 1 3)  keep those dice, reroll the rest";
         print_endline "  none                     reroll all five dice";
-        print_endline "  score                    stop rolling and pick a category";
+        print_endline
+          "  score                    stop rolling and pick a category";
         print_endline "  card                     view your scorecard";
         match ask parse_turn_input "> " with
         | Score_now -> choose_score game state
@@ -81,10 +89,8 @@ and choose_score game state =
 let bot_turn (module Bot : Bot_intf.BOT) bot_name game bot_rng =
   let rec play game =
     let state = Game.get_state game in
-    if state.phase = Game.Awaiting_roll then
-      play (apply game Game.Roll)
-    else if state.phase = Game.Finished then
-      game
+    if state.phase = Game.Awaiting_roll then play (apply game Game.Roll)
+    else if state.phase = Game.Finished then game
     else
       let dice =
         match state.dice with
@@ -95,8 +101,7 @@ let bot_turn (module Bot : Bot_intf.BOT) bot_name game bot_rng =
       let observation : Bot_intf.observation =
         {
           dice;
-          scorecard =
-            state.players.(state.current_player).Game.scorecard;
+          scorecard = state.players.(state.current_player).Game.scorecard;
           rolls_remaining = 3 - state.rolls_used;
           legal_categories = categories;
         }
@@ -107,13 +112,12 @@ let bot_turn (module Bot : Bot_intf.BOT) bot_name game bot_rng =
           (Terminal_ui.render_bot_roll bot_name state.rolls_used dice
              (Some keep));
         play (apply game (Game.Reroll keep)))
-      else (
+      else
         let category = Bot.choose_category bot_rng observation in
         print_endline
           (Terminal_ui.render_bot_roll bot_name state.rolls_used dice None);
-        print_endline
-          (Terminal_ui.render_bot_score bot_name dice category);
-        apply game (Game.Score category))
+        print_endline (Terminal_ui.render_bot_score bot_name dice category);
+        apply game (Game.Score category)
   in
   print_endline (Terminal_ui.render_turn_banner bot_name);
   play game
@@ -124,7 +128,8 @@ let print_results game =
   print_endline "\nFinal scores:";
   List.iter2
     (fun player score -> Printf.printf "  %s: %d\n" player.Game.name score)
-    (Array.to_list state.players) scores;
+    (Array.to_list state.players)
+    scores;
   let highest = List.fold_left max min_int scores in
   let winners =
     List.filter_map
@@ -133,14 +138,14 @@ let print_results game =
       (List.combine (Array.to_list state.players) scores)
   in
   match winners with
-  | [winner] -> Printf.printf "%s wins!\n" winner
+  | [ winner ] -> Printf.printf "%s wins!\n" winner
   | _ -> Printf.printf "It's a tie between %s.\n" (String.concat ", " winners)
 
 let play_game () =
   let bot, bot_name = choose_bot () in
   let seed = Random.bits () in
-  let game = Game.create_named ["Human"; bot_name] seed in
-  let bot_rng = Random.State.make [|seed; 1|] in
+  let game = Game.create_named [ "Human"; bot_name ] seed in
+  let bot_rng = Random.State.make [| seed; 1 |] in
   let rec play game =
     if Game.is_finished game then game
     else
@@ -157,5 +162,5 @@ let () =
   print_endline "Yahtzee: Human vs Bot";
   print_endline
     "Each turn: up to 3 rolls. Choose dice to keep by position, then score.";
-  try play_game () with
-  | End_of_file -> print_endline "\nInput ended; game stopped."
+  try play_game ()
+  with End_of_file -> print_endline "\nInput ended; game stopped."
