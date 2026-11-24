@@ -13,3 +13,7 @@
 (test
  (name test_terminal_ui)
  (libraries ounit2 team_project))
+
+(test
+ (name test_probability)
+ (libraries ounit2 team_project))
